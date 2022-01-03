@@ -2803,7 +2803,7 @@ void update_lakitu(struct Camera *c) {
 void switch_puppycam_enabled(void) {
     switch (gCurrLevelNum) {
         // case YOUR_LEVEL:
-        case LEVEL_DDD:
+        case LEVEL_COZIES:
             gPuppyCam.enabled = TRUE;
             break;
         default:

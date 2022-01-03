@@ -6557,6 +6557,8 @@ const BehaviorScript bhvWaterSpout[] = {
     LOAD_COLLISION_DATA(water_spout_collision),
     SET_FLOAT(oCollisionDistance, 30000),
     SET_FLOAT(oDrawingDistance, 30000),
+    SET_HOME(),
+    CALL_NATIVE(water_spout_init),
     BEGIN_LOOP(),
         CALL_NATIVE(water_spout_loop),
         CALL_NATIVE(load_object_collision_model),
@@ -6581,6 +6583,39 @@ const BehaviorScript bhvAperatureDoor[] = {
     SET_FLOAT(oDrawingDistance, 30000),
     BEGIN_LOOP(),
         CALL_NATIVE(aperature_door_loop),
+    END_LOOP(),
+};
+
+const BehaviorScript bhvFloatyRock[] = {
+    BEGIN(OBJ_LIST_SURFACE),
+    OR_LONG(oFlags, (OBJ_FLAG_UCODE_LARGE | OBJ_FLAG_DONT_CALC_COLL_DIST | OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE)),
+    LOAD_COLLISION_DATA(floaty_rock_collision),
+    SET_FLOAT(oCollisionDistance, 1000),
+    SET_FLOAT(oDrawingDistance, 30000),
+    CALL_NATIVE(floaty_rock_init),
+    BEGIN_LOOP(),
+        CALL_NATIVE(floaty_rock_loop),
+        CALL_NATIVE(load_object_collision_model),
+    END_LOOP(),
+};
+
+const BehaviorScript bhvShyguyScuba[] = {
+    BEGIN(OBJ_LIST_GENACTOR),
+    OR_INT(oFlags, (OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE)),
+    // LOAD_ANIMATIONS(oAnimations, shyguy_scuba_anims),
+    // ANIMATE(0),
+    SET_HOME(),
+    SET_OBJ_PHYSICS(/*Wall hitbox radius*/ 200, /*Gravity*/ -400, /*Bounciness*/ -50, /*Drag strength*/ 1000, /*Friction*/ 1000, /*Buoyancy*/ 0, /*Unused*/ 0, 0),
+    BEGIN_LOOP(),
+        // CALL_NATIVE(bhv_shyguy_scuba_loop),
+    END_LOOP(),
+};
+
+const BehaviorScript bhvBubbleShell[] = {
+    BEGIN(OBJ_LIST_GENACTOR),
+    OR_LONG(oFlags, (OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_SILHOUETTE)),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bubble_shell_loop),
     END_LOOP(),
 };
 // thecozies bhvs end

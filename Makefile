@@ -604,7 +604,7 @@ patch: $(ROM)
 	@$(SHA1SUM) $(ROM)
 
 # Extra object file dependencies
-$(BUILD_DIR)/asm/boot.o:              $(IPL3_RAW_FILES)
+$(BUILD_DIR)/asm/boot.o:              $(IPL3_RAW_FILES) $(BUILD_DIR)/include/dma_tex.h
 $(BUILD_DIR)/src/game/crash_screen.o: $(CRASH_TEXTURE_C_FILES)
 
 $(BUILD_DIR)/lib/aspMain.o:           $(BUILD_DIR)/rsp/audio.bin
@@ -662,7 +662,7 @@ $(BUILD_DIR)/src/game/rendering_graph_node.o: OPT_FLAGS := $(GRAPH_NODE_OPT_FLAG
 # $(info MATH_UTIL_OPT_FLAGS:  $(MATH_UTIL_OPT_FLAGS))
 # $(info GRAPH_NODE_OPT_FLAGS: $(GRAPH_NODE_OPT_FLAGS))
 
-ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS) asm/debug $(GODDARD_SRC_DIRS) $(LIBZ_SRC_DIRS) $(ULTRA_BIN_DIRS) $(BIN_DIRS) $(TEXTURE_DIRS) $(TEXT_DIRS) $(SOUND_SAMPLE_DIRS) $(addprefix levels/,$(LEVEL_DIRS)) rsp include) $(YAY0_DIR) $(addprefix $(YAY0_DIR)/,$(VERSION)) $(SOUND_BIN_DIR) $(SOUND_BIN_DIR)/sequences/$(VERSION)
+ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS) dma_tex asm/debug $(GODDARD_SRC_DIRS) $(LIBZ_SRC_DIRS) $(ULTRA_BIN_DIRS) $(BIN_DIRS) $(TEXTURE_DIRS) $(TEXT_DIRS) $(SOUND_SAMPLE_DIRS) $(addprefix levels/,$(LEVEL_DIRS)) rsp include) $(YAY0_DIR) $(addprefix $(YAY0_DIR)/,$(VERSION)) $(SOUND_BIN_DIR) $(SOUND_BIN_DIR)/sequences/$(VERSION)
 
 # Make sure build directory exists before compiling anything
 DUMMY != mkdir -p $(ALL_DIRS)
@@ -699,6 +699,17 @@ $(BUILD_DIR)/%.ci4.inc.c: %.ci4.png
 	$(call print,Converting CI:,$<,$@)
 	$(V)$(BINPNG) $< $@ 4
 
+
+DMA_TEX_FILES=$(wildcard dma_tex/*.png)
+DMA_O_FILES=$(foreach file,$(DMA_TEX_FILES),$(BUILD_DIR)/$(file:.png=.o))
+
+$(BUILD_DIR)/dma_tex/%.o: dma_tex/%.png
+	$(call print,Converting DMA tex:,$<,$@)
+	$(V)$(N64GRAPHICS) -s raw -i $@ -g $< -f $(lastword ,$(subst ., ,$(basename $<)))
+	$(V)$(LD) -r -b binary -o $@ $<
+	$(V)$(OBJDUMP) -t $@ | awk '/_binary./ {print $$NF}' | python3 ./rename_dma_syms.py > $@.sym
+	$(V)$(OBJCOPY) $@ --redefine-syms=$@.sym
+	$(V)cat $@.sym | awk '{print $$NF}' | python3 create_dma_header.py >> $(BUILD_DIR)/include/dma_tex.h
 
 #==============================================================================#
 # Compressed Segment Generation                                                #
@@ -838,6 +849,11 @@ $(BUILD_DIR)/include/level_headers.h: levels/level_headers.h.in
 	$(call print,Preprocessing level headers:,$<,$@)
 	$(V)$(CPP) $(CPPFLAGS) -I . $< | sed -E 's|(.+)|#include "\1"|' > $@
 
+# Level headers
+$(BUILD_DIR)/include/dma_tex.h: include/dma_tex.h.in
+	$(call print,Copying dma_tex headers:,$<,$@)
+	$(V)cat $< > $@
+
 #==============================================================================#
 # Compilation Recipes                                                          #
 #==============================================================================#
@@ -876,7 +892,7 @@ $(BUILD_DIR)/libz.a: $(LIBZ_O_FILES)
 	$(V)$(AR) rcs -o $@ $(LIBZ_O_FILES)
 
 # SS2: Goddard rules to get size
-$(BUILD_DIR)/sm64_prelim.ld: sm64.ld $(O_FILES) $(YAY0_OBJ_FILES) $(SEG_FILES) $(BUILD_DIR)/libgoddard.a $(BUILD_DIR)/libz.a
+$(BUILD_DIR)/sm64_prelim.ld: sm64.ld $(DMA_O_FILES) $(O_FILES) $(YAY0_OBJ_FILES) $(SEG_FILES) $(BUILD_DIR)/libgoddard.a $(BUILD_DIR)/libz.a
 	$(call print,Preprocessing preliminary linker script:,$<,$@)
 	$(V)$(CPP) $(CPPFLAGS) -DPRELIMINARY=1 -DBUILD_DIR=$(BUILD_DIR) -MMD -MP -MT $@ -MF $@.d -o $@ $<
 
@@ -894,9 +910,9 @@ $(BUILD_DIR)/asm/debug/map.o: asm/debug/map.s $(BUILD_DIR)/sm64_prelim.elf
 	$(V)$(CROSS)gcc -c $(ASMFLAGS) $(foreach i,$(INCLUDE_DIRS),-Wa,-I$(i)) -x assembler-with-cpp -MMD -MF $(BUILD_DIR)/$*.d  -o $@ $<
 
 # Link SM64 ELF file
-$(ELF): $(BUILD_DIR)/sm64_prelim.elf $(BUILD_DIR)/asm/debug/map.o $(O_FILES) $(YAY0_OBJ_FILES) $(SEG_FILES) $(BUILD_DIR)/$(LD_SCRIPT) undefined_syms.txt $(BUILD_DIR)/libz.a $(BUILD_DIR)/libgoddard.a
+$(ELF): $(BUILD_DIR)/sm64_prelim.elf $(BUILD_DIR)/asm/debug/map.o $(DMA_O_FILES) $(O_FILES) $(YAY0_OBJ_FILES) $(SEG_FILES) $(BUILD_DIR)/$(LD_SCRIPT) undefined_syms.txt $(BUILD_DIR)/libz.a $(BUILD_DIR)/libgoddard.a
 	@$(PRINT) "$(GREEN)Linking ELF file:  $(BLUE)$@ $(NO_COL)\n"
-	$(V)$(LD) --gc-sections -L $(BUILD_DIR) -T undefined_syms.txt -T $(BUILD_DIR)/$(LD_SCRIPT) -T goddard.txt -Map $(BUILD_DIR)/sm64.$(VERSION).map --no-check-sections $(addprefix -R ,$(SEG_FILES)) -o $@ $(O_FILES) -L$(LIBS_DIR) -l$(ULTRALIB) -Llib $(LINK_LIBRARIES) -u sprintf -u osMapTLB -Llib/gcclib/$(LIBGCCDIR) -lgcc -lrtc
+	$(V)$(LD) --gc-sections -L $(BUILD_DIR) -T undefined_syms.txt -T $(BUILD_DIR)/$(LD_SCRIPT) -T goddard.txt -Map $(BUILD_DIR)/sm64.$(VERSION).map --no-check-sections $(addprefix -R ,$(SEG_FILES)) -o $@ $(DMA_O_FILES) $(O_FILES) -L$(LIBS_DIR) -l$(ULTRALIB) -Llib $(LINK_LIBRARIES) -u sprintf -u osMapTLB -Llib/gcclib/$(LIBGCCDIR) -lgcc -lrtc
 
 # Build ROM
 ifeq (n,$(findstring n,$(firstword -$(MAKEFLAGS))))

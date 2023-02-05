@@ -155,4 +155,6 @@ DECLARE_SEGMENT(translation_fr_mio0)
 
 #endif
 
+#include "dma_tex.h"
+
 #endif // SEGMENT_SYMBOLS_H

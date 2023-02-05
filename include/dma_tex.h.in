@@ -1,0 +1,4 @@
+#pragma once
+#include <types.h>
+
+// this will end up containing all dma texture references in build/include/dma_tex.h

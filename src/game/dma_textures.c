@@ -1,5 +1,6 @@
 #include <ultra64.h>
 #include "dma_textures.h"
+#include "segment_symbols.h"
 #include "memory.h"
 
 static float get_im_siz_mult(u32 g_img_siz) {
@@ -24,4 +25,3 @@ void dmat_copy(Texture t_pointer[], u32 **t_array, u32 idx, u32 count) {
 
 	dma_read(segmented_to_virtual(t_pointer), rom, rom + (u32) t_array[1] - (u32) t_array[0]);
 }
-

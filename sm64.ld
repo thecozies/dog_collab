@@ -90,6 +90,11 @@ OUTPUT_ARCH (mips)
    _##name##_mio0SegmentRomStart = _##name##_yay0SegmentRomStart; \
    _##name##_mio0SegmentRomEnd = _##name##_yay0SegmentRomEnd;
 
+#define TEX_SEG(name) \
+    _##name## = AT(__romPos); \
+    KEEP(BUILD_DIR/dma_tex/name##.o(.*data*)); \
+    _##name##End = AT(__romPos); \
+
 SECTIONS
 {
    __romPos = 0;
@@ -536,6 +541,16 @@ SECTIONS
    }
 	END_SEG(capcom)
 #endif
+
+#ifdef TEX_SEGMENTS
+   TEX_SEGMENTS
+#endif
+
+   BEGIN_SEG(dma_tex, __romPos) SUBALIGN(16)
+   {
+      KEEP(BUILD_DIR/dma_tex*.o(.data*));
+   }
+	END_SEG(dma_tex)
 
 #ifdef DEBUG_MAP_STACKTRACE
    BEGIN_SEG(mapData, (RAM_END - 0x00100000)) {
